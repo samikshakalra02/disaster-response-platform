@@ -122,7 +122,7 @@ npx serve .              # or just open index.html directly
 
 No API keys or paid map services required — Leaflet + OpenStreetMap tiles and Nominatim geocoding all work out of the box. The Google Maps directions buttons are plain deep links, so they need no SDK or key either.
 
-## 👥 Team
+## 👥 Team CodeNewbees
 
 Samiksha Kalra
 Shivanshu Pandey
