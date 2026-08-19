@@ -122,6 +122,17 @@ npx serve .              # or just open index.html directly
 
 No API keys or paid map services required — Leaflet + OpenStreetMap tiles and Nominatim geocoding all work out of the box. The Google Maps directions buttons are plain deep links, so they need no SDK or key either.
 
+📸 Screenshots
+<img width="582" height="1082" alt="image" src="https://github.com/user-attachments/assets/e0467f3a-566e-4b4e-852d-33d538b0ca60" />
+<img width="1919" height="1090" alt="image" src="https://github.com/user-attachments/assets/4369addb-c261-40bd-883f-ffe7c6ab69ab" />
+<img width="584" height="1069" alt="image" src="https://github.com/user-attachments/assets/b9e3e736-bfa2-460b-9e48-6ac8d035d18d" />
+<img width="578" height="1092" alt="image" src="https://github.com/user-attachments/assets/0d756e06-4bb9-4e75-9ebd-8f71553194d0" />
+<img width="578" height="1092" alt="image" src="https://github.com/user-attachments/assets/8908eaca-cc3a-4791-9564-ecccc314cba4" />
+<img width="573" height="1082" alt="image" src="https://github.com/user-attachments/assets/04f208a4-5e0d-4342-85cc-b870862d4268" />
+<img width="579" height="1088" alt="image" src="https://github.com/user-attachments/assets/bd0c18f5-3097-4cba-9547-f6cc0f9453a4" />
+<img width="649" height="1083" alt="image" src="https://github.com/user-attachments/assets/6d7abfd9-7949-458a-8d70-a51d99b167fb" />
+
+
 ## 👥 Team CodeNewbees
 
 Samiksha Kalra
