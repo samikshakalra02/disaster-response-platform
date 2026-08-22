@@ -4,6 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
 <title>SIGNAL — Emergency Dispatch</title>
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin=""/>
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600;700&display=swap');
 
@@ -337,23 +338,42 @@ button, [role="button"], .tappable{ touch-action:manipulation; }
 
 .mini-map{
   position:relative;
-  height:150px;
+  height:180px;
   border:1px solid var(--border);
   border-radius:14px;
-  background:
-    linear-gradient(var(--border-soft) 1px, transparent 1px) 0 0/24px 24px,
-    linear-gradient(90deg, var(--border-soft) 1px, transparent 1px) 0 0/24px 24px,
-    #fafafa;
   overflow:hidden;
 }
-.pin{position:absolute;width:10px;height:10px;border-radius:50%;transform:translate(-50%,-50%);}
-.pin.user{background:var(--ink);box-shadow:0 0 0 4px rgba(17,17,17,.12);}
-.pin.user::after{content:'YOU';position:absolute;top:14px;left:50%;transform:translateX(-50%);font-family:var(--font-mono);font-size:8px;letter-spacing:.1em;color:var(--text-dim);white-space:nowrap;}
-.pin.responder{background:#fff;border:2px solid var(--ink);}
-.pin.responder::after{content:'RESPONDER';position:absolute;top:-18px;left:50%;transform:translateX(-50%);font-family:var(--font-mono);font-size:8px;letter-spacing:.1em;color:var(--text-dim);white-space:nowrap;}
-.path-line{position:absolute;stroke:var(--text-faint);stroke-width:1;stroke-dasharray:3 4;fill:none;}
+.mini-map .leaflet-popup-content-wrapper,.mini-map .leaflet-popup-tip{font-family:var(--font-mono);font-size:11px;}
 
 .quick-actions{display:flex;gap:10px;flex-wrap:wrap;}
+
+#track-live-group{display:flex;flex-direction:column;gap:18px;}
+
+.assigning-card{
+  border:1px solid var(--border);
+  background:var(--surface);
+  border-radius:14px;
+  padding:24px 22px;
+  display:flex;
+  align-items:center;
+  gap:16px;
+}
+.assigning-dot{
+  position:relative;
+  width:12px;height:12px;border-radius:50%;
+  background:var(--ink);
+  flex-shrink:0;
+  animation:pulse-dot 1.2s infinite;
+}
+.assigning-dot::before{
+  content:'';
+  position:absolute;inset:-9px;
+  border-radius:50%;
+  border:1px solid var(--border);
+  animation:ripple 2s ease-out infinite;
+}
+.assigning-title{font-family:var(--font-display);font-weight:700;font-size:16px;}
+.assigning-sub{font-family:var(--font-mono);font-size:11px;color:var(--text-dim);letter-spacing:.04em;margin-top:5px;line-height:1.5;}
 
 /* ---------- REPORTS VIEW ---------- */
 #view-reports{padding-top:18px;gap:16px;}
@@ -417,6 +437,8 @@ button, [role="button"], .tappable{ touch-action:manipulation; }
 .li-title{font-size:14px;font-weight:600;}
 .li-meta{font-family:var(--font-mono);font-size:10px;color:var(--text-dim);letter-spacing:.05em;margin-top:3px;}
 .li-dist{font-family:var(--font-mono);font-size:12px;color:var(--text-dim);text-align:right;flex-shrink:0;}
+.li-nav-btn{flex-shrink:0;width:30px;height:30px;border-radius:8px;border:1px solid var(--ink);background:#fff;color:var(--ink);display:flex;align-items:center;justify-content:center;cursor:pointer;padding:0;}
+.li-nav-btn:hover{background:var(--ink);color:#fff;}
 
 /* ---------- CONTACTS / SETTINGS VIEW ---------- */
 #view-contacts{padding-top:18px;gap:20px;}
@@ -498,6 +520,21 @@ button, [role="button"], .tappable{ touch-action:manipulation; }
 .staff-btn.primary{background:var(--ink);color:#fff;}
 .staff-btn.call{border-color:var(--border);color:var(--text-dim);flex:0 0 auto;padding:9px 12px;}
 .staff-btn.call svg{width:12px;height:12px;stroke:currentColor;fill:none;stroke-width:2;}
+.staff-eta-input{
+  flex:0 0 62px;
+  width:62px;
+  padding:9px 6px;
+  border-radius:8px;
+  border:1px solid var(--border);
+  background:#fff;
+  font-family:var(--font-mono);
+  font-size:11px;
+  text-align:center;
+  color:var(--text);
+}
+.staff-eta-input::placeholder{color:var(--text-faint);}
+.staff-eta-input:focus{outline:none;border-color:var(--ink);}
+.staff-actions{flex-wrap:wrap;}
 
 /* ---------- BOTTOM NAV ---------- */
 #navbar{
@@ -679,58 +716,73 @@ button, [role="button"], .tappable{ touch-action:manipulation; }
       <div class="report-summary" id="track-location" style="display:none;"></div>
     </div>
 
-    <div class="eta-card">
-      <div class="eta-top">
-        <div>
-          <div class="eta-value" id="eta-value">06:45</div>
-          <div class="eta-unit">ESTIMATED ARRIVAL</div>
-        </div>
-        <div class="eta-dist">
-          <div class="d-val" id="dist-value">3.2 km</div>
-          <div class="d-label">RESPONDER DISTANCE</div>
-        </div>
-      </div>
-      <div class="progress-track"><div class="progress-fill" id="progress-fill"></div></div>
-    </div>
-
-    <div>
-      <div class="section-label">QUICK ACTIONS</div>
-      <div class="quick-actions" id="track-quick-call"></div>
-    </div>
-
-    <div>
-      <div class="section-label">LIVE POSITION</div>
-      <div class="mini-map">
-        <svg class="path-line" width="100%" height="100%" viewBox="0 0 300 150" preserveAspectRatio="none">
-          <path d="M40,30 C 120,20 180,110 240,110" />
-        </svg>
-        <div class="pin responder" id="pin-responder" style="left:13%; top:20%;"></div>
-        <div class="pin user" id="pin-user" style="left:80%; top:73%;"></div>
+    <div class="assigning-card" id="track-idle">
+      <div>
+        <div class="assigning-title">No active alert</div>
+        <div class="assigning-sub">Trigger the SOS button or submit a report to start tracking a response.</div>
       </div>
     </div>
 
-    <div>
-      <div class="section-label">DISPATCH TIMELINE</div>
-      <div class="timeline" id="timeline">
-        <div class="tl-item done" data-t="0">
-          <div class="tl-dot-wrap"><div class="tl-dot"></div><div class="tl-line"></div></div>
-          <div class="tl-text">Alert reported</div><div class="tl-time" id="t-reported">00:00</div>
+    <div class="assigning-card" id="track-assigning" style="display:none;">
+      <div class="assigning-dot"></div>
+      <div>
+        <div class="assigning-title">Assigning help</div>
+        <div class="assigning-sub" id="assigning-sub">Connecting you to a dispatcher…</div>
+      </div>
+    </div>
+
+    <div id="track-live-group" style="display:none;">
+      <div class="eta-card">
+        <div class="eta-top">
+          <div>
+            <div class="eta-value" id="eta-value">06:45</div>
+            <div class="eta-unit" id="eta-unit">ESTIMATED ARRIVAL</div>
+          </div>
+          <div class="eta-dist">
+            <div class="d-val" id="dist-value">3.2 km</div>
+            <div class="d-label">RESPONDER DISTANCE</div>
+          </div>
         </div>
-        <div class="tl-item" data-t="0.1">
-          <div class="tl-dot-wrap"><div class="tl-dot"></div><div class="tl-line"></div></div>
-          <div class="tl-text">Acknowledged by dispatch</div><div class="tl-time" id="t-ack">—</div>
-        </div>
-        <div class="tl-item" data-t="0.3">
-          <div class="tl-dot-wrap"><div class="tl-dot"></div><div class="tl-line"></div></div>
-          <div class="tl-text">Responder assigned</div><div class="tl-time" id="t-assigned">—</div>
-        </div>
-        <div class="tl-item" data-t="0.55">
-          <div class="tl-dot-wrap"><div class="tl-dot"></div><div class="tl-line"></div></div>
-          <div class="tl-text">En route to your location</div><div class="tl-time" id="t-enroute">—</div>
-        </div>
-        <div class="tl-item" data-t="0.92">
-          <div class="tl-dot-wrap"><div class="tl-dot"></div></div>
-          <div class="tl-text">Arriving</div><div class="tl-time" id="t-arriving">—</div>
+        <div class="progress-track"><div class="progress-fill" id="progress-fill"></div></div>
+      </div>
+
+      <div>
+        <div class="section-label">QUICK ACTIONS</div>
+        <div class="quick-actions" id="track-quick-call"></div>
+      </div>
+
+      <div>
+        <div class="section-label">LIVE POSITION</div>
+        <div class="mini-map" id="track-map"></div>
+        <a class="staff-btn primary" id="track-directions-link" href="#" target="_blank" rel="noopener" style="margin-top:10px; display:flex;">
+          <svg viewBox="0 0 24 24" style="width:12px;height:12px;stroke:currentColor;fill:none;stroke-width:2;"><path d="M12 22s7-7.4 7-13a7 7 0 10-14 0c0 5.6 7 13 7 13z"/><circle cx="12" cy="9" r="2.4"/></svg>
+          OPEN IN GOOGLE MAPS
+        </a>
+      </div>
+
+      <div>
+        <div class="section-label">DISPATCH TIMELINE</div>
+        <div class="timeline" id="timeline">
+          <div class="tl-item done" data-t="0">
+            <div class="tl-dot-wrap"><div class="tl-dot"></div><div class="tl-line"></div></div>
+            <div class="tl-text">Alert reported</div><div class="tl-time" id="t-reported">00:00</div>
+          </div>
+          <div class="tl-item" data-t="0.1">
+            <div class="tl-dot-wrap"><div class="tl-dot"></div><div class="tl-line"></div></div>
+            <div class="tl-text">Acknowledged by dispatch</div><div class="tl-time" id="t-ack">—</div>
+          </div>
+          <div class="tl-item" data-t="0.3">
+            <div class="tl-dot-wrap"><div class="tl-dot"></div><div class="tl-line"></div></div>
+            <div class="tl-text">Responder assigned</div><div class="tl-time" id="t-assigned">—</div>
+          </div>
+          <div class="tl-item" data-t="0.55">
+            <div class="tl-dot-wrap"><div class="tl-dot"></div><div class="tl-line"></div></div>
+            <div class="tl-text">En route to your location</div><div class="tl-time" id="t-enroute">—</div>
+          </div>
+          <div class="tl-item" data-t="0.92">
+            <div class="tl-dot-wrap"><div class="tl-dot"></div></div>
+            <div class="tl-text">Arriving</div><div class="tl-time" id="t-arriving">—</div>
+          </div>
         </div>
       </div>
     </div>
@@ -740,16 +792,13 @@ button, [role="button"], .tappable{ touch-action:manipulation; }
   <div class="view" id="view-reports">
     <div>
       <div class="section-label">NEARBY REPORTED ISSUES</div>
-      <div class="reports-map" id="reports-map">
-        <div class="sweep"></div>
-        <div class="you-center"></div>
-        <!-- pins injected by JS -->
-      </div>
+      <div class="reports-map" id="reports-map"></div>
     </div>
     <div>
       <div class="section-label">SORTED BY PRIORITY</div>
       <div class="reports-list" id="reports-list"></div>
     </div>
+
   </div>
 
   <!-- ===================== CONTACTS / SETTINGS VIEW ===================== -->
@@ -910,15 +959,29 @@ button, [role="button"], .tappable{ touch-action:manipulation; }
     </div>
   </div>
 
+  <!-- ===================== VICTIM LOCATION MAP (staff mode) ===================== -->
+  <div class="modal-scrim" id="modal-map">
+    <div class="modal-box" style="max-width:520px;">
+      <div class="modal-title" id="map-modal-title">Victim location</div>
+      <div class="modal-sub" id="map-modal-sub">Live coordinates as submitted with this alert.</div>
+      <div id="staff-map" style="width:100%;height:300px;border-radius:14px;overflow:hidden;border:1px solid var(--border);background:var(--surface);"></div>
+      <div class="staff-actions" style="margin-top:14px;">
+        <a class="staff-btn primary" id="map-directions-link" href="#" target="_blank" rel="noopener">GET DIRECTIONS</a>
+        <button class="staff-btn" id="map-close" type="button">CLOSE</button>
+      </div>
+    </div>
+  </div>
+
   <div id="toast"></div>
 </div>
 
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
 <script>
 /* ================================================================
    BACKEND CONNECTION
    Points at the live SIGNAL backend. Change this if you redeploy
    somewhere else, or move it to a build-time env var later.
-================================================================= */
+   ================================================================= */
 const API_BASE = 'https://signal-backend-production-3aea.up.railway.app/api';
 
 let staffToken = null;   // kept in memory only — never persisted to storage
@@ -1403,18 +1466,14 @@ document.getElementById('rep-submit').addEventListener('click', async ()=>{
   closeModal(modalReport);
   applyReportToTrack();
   switchView('track');
-  startTracking();
-  await submitAlertToBackend(lastReport);
-  showToast('REPORT SENT — HELP IS ON THE WAY');
+  beginAlertFlow(lastReport);
 });
 
 document.getElementById('rep-skip').addEventListener('click', async ()=>{
   lastReport = null;
   closeModal(modalReport);
   switchView('track');
-  startTracking();
-  await submitAlertToBackend(null);
-  showToast('ALERT SENT — HELP IS ON THE WAY');
+  beginAlertFlow(null);
 });
 
 function applyReportToTrack(){
@@ -1429,6 +1488,133 @@ function applyReportToTrack(){
 }
 
 /* ================================================================
+   ALERT LIFECYCLE — waiting for dispatch to acknowledge
+   The citizen's countdown timer must NOT start the moment a report is
+   registered. It only starts once staff mark the alert ACKNOWLEDGED and
+   provide an ETA — until then we just show a waiting/"assigning" state.
+================================================================= */
+let currentAlertId = null;
+let alertPollInterval = null;
+let ackHandled = false;
+const DEFAULT_ETA_MINUTES = 6.75; // fallback only if the backend can't be reached at all
+
+/* ----------------------------------------------------------------
+   Survive a refresh: remember which alert we're tracking so a reload
+   (or the tab reopening) resumes the same report instead of dropping
+   back to the SOS screen with no way back to it.
+   ---------------------------------------------------------------- */
+const ACTIVE_ALERT_KEY = 'signal_active_alert';
+
+function saveActiveAlert(){
+  if(!currentAlertId) return;
+  try{
+    localStorage.setItem(ACTIVE_ALERT_KEY, JSON.stringify({ id: currentAlertId, report: lastReport }));
+  }catch(e){ /* storage unavailable — tracking still works, just won't survive a refresh */ }
+}
+function loadActiveAlert(){
+  try{
+    const raw = localStorage.getItem(ACTIVE_ALERT_KEY);
+    return raw ? JSON.parse(raw) : null;
+  }catch(e){ return null; }
+}
+function clearActiveAlert(){
+  try{ localStorage.removeItem(ACTIVE_ALERT_KEY); }catch(e){}
+}
+
+// Called on page load. If a report was already sent before the refresh,
+// jump straight back into tracking it instead of starting from 0.
+async function resumeActiveAlertIfAny(){
+  const saved = loadActiveAlert();
+  if(!saved || !saved.id) return;
+
+  currentAlertId = saved.id;
+  lastReport = saved.report || null;
+  ackHandled = false;
+
+  switchView('track');
+  applyReportToTrack();
+  showAssigningState();
+  startAlertPolling();
+}
+
+function showAssigningState(){
+  document.getElementById('track-idle').style.display = 'none';
+  document.getElementById('track-assigning').style.display = 'flex';
+  document.getElementById('track-live-group').style.display = 'none';
+  document.getElementById('assigning-sub').textContent = 'Connecting you to a dispatcher…';
+
+  document.querySelectorAll('.tl-item').forEach(el=>el.classList.remove('done','active'));
+  document.querySelector('.tl-item[data-t="0"]').classList.add('done');
+  document.getElementById('t-reported').textContent = new Date().toTimeString().slice(0,5);
+  ['t-ack','t-assigned','t-enroute','t-arriving'].forEach(id=>document.getElementById(id).textContent='—');
+}
+
+function showTrackingState(){
+  document.getElementById('track-idle').style.display = 'none';
+  document.getElementById('track-assigning').style.display = 'none';
+  document.getElementById('track-live-group').style.display = 'flex';
+}
+
+async function beginAlertFlow(report){
+  stopAlertPolling();
+  clearInterval(trackInterval);
+  currentAlertId = null;
+  ackHandled = false;
+  clearActiveAlert();
+  showAssigningState();
+
+  const result = await submitAlertToBackend(report);
+
+  if(result && result.alert && result.alert.id){
+    currentAlertId = result.alert.id;
+    saveActiveAlert();
+    startAlertPolling();
+  } else {
+    // Backend didn't confirm the alert (offline, etc). We still can't start
+    // a real countdown without a dispatcher's ETA, so keep showing the
+    // waiting state and fall back to a demo ETA after a short delay.
+    document.getElementById('assigning-sub').textContent = 'Connecting you to a dispatcher…';
+    setTimeout(()=>{
+      if(!ackHandled){
+        ackHandled = true;
+        startTracking(DEFAULT_ETA_MINUTES);
+      }
+    }, 6000);
+  }
+}
+
+function startAlertPolling(){
+  stopAlertPolling();
+  pollAlertOnce();
+  alertPollInterval = setInterval(pollAlertOnce, 4000);
+}
+function stopAlertPolling(){
+  if(alertPollInterval){ clearInterval(alertPollInterval); alertPollInterval = null; }
+}
+
+async function pollAlertOnce(){
+  if(!currentAlertId || ackHandled) return;
+  try{
+    const res = await fetch(`${API_BASE}/alerts/${currentAlertId}/track`);
+    if(!res.ok) return;
+    const data = await res.json();
+    const alert = data && data.alert;
+    if(!alert) return;
+
+    if(alert.status === 'ack' || alert.status === 'dispatched' || alert.status === 'resolved'){
+      if(!ackHandled){
+        ackHandled = true;
+        stopAlertPolling();
+        showToast('DISPATCHER ACKNOWLEDGED YOUR ALERT');
+        startTracking(alert.etaMinutes || DEFAULT_ETA_MINUTES);
+      }
+    }
+  }catch(e){
+    // Network hiccup — silently retry on the next tick.
+  }
+}
+
+/* ================================================================
    TRACKING SIMULATION
 ================================================================= */
 let trackInterval;
@@ -1437,18 +1623,75 @@ function fmt(sec){
   const s = Math.floor(sec%60).toString().padStart(2,'0');
   return m+':'+s;
 }
-function startTracking(){
+
+// Great-circle destination point given a start coord, bearing (deg), distance (km).
+// Used to generate a plausible starting position for the responder relative to
+// the citizen's real (or fallback) location, so the live map has two real coords.
+function destinationPoint(lat, lng, bearingDeg, distKm){
+  const R = 6371;
+  const brng = bearingDeg * Math.PI/180;
+  const lat1 = lat * Math.PI/180, lng1 = lng * Math.PI/180;
+  const lat2 = Math.asin(Math.sin(lat1)*Math.cos(distKm/R) + Math.cos(lat1)*Math.sin(distKm/R)*Math.cos(brng));
+  const lng2 = lng1 + Math.atan2(
+    Math.sin(brng)*Math.sin(distKm/R)*Math.cos(lat1),
+    Math.cos(distKm/R) - Math.sin(lat1)*Math.sin(lat2)
+  );
+  return { lat: lat2*180/Math.PI, lng: ((lng2*180/Math.PI + 540) % 360) - 180 };
+}
+
+function lerp(a, b, t){ return a + (b-a)*t; }
+
+let trackMapInstance = null, trackUserMarker = null, trackResponderMarker = null, trackLine = null;
+const responderIcon = L.divIcon({ className:'issue-marker', html:`<div style="width:16px;height:16px;border-radius:50%;background:#fff;border:2px solid var(--ink);"></div>`, iconSize:[16,16], iconAnchor:[8,8] });
+
+function initTrackMap(userPt, responderPt){
+  if(trackMapInstance){
+    trackMapInstance.invalidateSize();
+    return;
+  }
+  trackMapInstance = L.map('track-map', { zoomControl:false }).setView(userPt, 14);
+  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+    maxZoom: 19,
+    attribution: '&copy; OpenStreetMap contributors'
+  }).addTo(trackMapInstance);
+  L.control.zoom({ position:'bottomright' }).addTo(trackMapInstance);
+
+  trackUserMarker = L.circleMarker(userPt, { radius:7, color:'#111', weight:2, fillColor:'#111', fillOpacity:1 })
+    .addTo(trackMapInstance).bindPopup('You');
+  trackResponderMarker = L.marker(responderPt, { icon: responderIcon })
+    .addTo(trackMapInstance).bindPopup('Responder');
+  trackLine = L.polyline([responderPt, userPt], { color:'#999', weight:2, dashArray:'3 5' }).addTo(trackMapInstance);
+  trackMapInstance.fitBounds(trackLine.getBounds(), { padding:[28,28] });
+}
+
+function startTracking(etaMinutesInput){
+  showTrackingState();
   clearInterval(trackInterval);
-  const TOTAL = 405;
+  document.getElementById('eta-unit').textContent = 'ESTIMATED ARRIVAL';
+
+  const etaMinutes = (etaMinutesInput && etaMinutesInput > 0) ? Number(etaMinutesInput) : DEFAULT_ETA_MINUTES;
+  const TOTAL = Math.round(etaMinutes * 60);
   const startDist = 3.2;
   let elapsed = 0;
 
-  document.querySelectorAll('.tl-item').forEach(el=>el.classList.remove('done','active'));
+  // Acknowledgement already happened (that's why we're here) — mark it now.
+  document.querySelectorAll('.tl-item').forEach(el=>el.classList.remove('active'));
   document.querySelector('.tl-item[data-t="0"]').classList.add('done');
-  document.getElementById('t-reported').textContent = new Date().toTimeString().slice(0,5);
-  ['t-ack','t-assigned','t-enroute','t-arriving'].forEach(id=>document.getElementById(id).textContent='—');
+  document.querySelector('.tl-item[data-t="0.1"]').classList.add('done');
+  const ackNow = new Date().toTimeString().slice(0,5);
+  if(document.getElementById('t-reported').textContent === '00:00' || document.getElementById('t-reported').textContent === '—'){
+    document.getElementById('t-reported').textContent = ackNow;
+  }
+  document.getElementById('t-ack').textContent = ackNow;
+  ['t-assigned','t-enroute','t-arriving'].forEach(id=>document.getElementById(id).textContent='—');
 
-  const pinResponder = document.getElementById('pin-responder');
+  const userPt = userLocation ? [userLocation.lat, userLocation.lng] : [28.6353, 77.2050];
+  const start = destinationPoint(userPt[0], userPt[1], 315, startDist);
+  const responderStart = [start.lat, start.lng];
+
+  setTimeout(()=> initTrackMap(userPt, responderStart), 60);
+  document.getElementById('track-directions-link').href =
+    `https://www.google.com/maps/dir/?api=1&origin=${responderStart[0]},${responderStart[1]}&destination=${userPt[0]},${userPt[1]}`;
 
   trackInterval = setInterval(()=>{
     elapsed += 1;
@@ -1459,10 +1702,12 @@ function startTracking(){
     document.getElementById('dist-value').textContent = (startDist*(1-frac)).toFixed(1)+' km';
     document.getElementById('progress-fill').style.width = (frac*100)+'%';
 
-    const x = 13 + frac*67;
-    const y = 20 + frac*53;
-    pinResponder.style.left = x+'%';
-    pinResponder.style.top = y+'%';
+    if(trackResponderMarker){
+      const curLat = lerp(responderStart[0], userPt[0], frac);
+      const curLng = lerp(responderStart[1], userPt[1], frac);
+      trackResponderMarker.setLatLng([curLat, curLng]);
+      if(trackLine) trackLine.setLatLngs([[curLat, curLng], userPt]);
+    }
 
     document.querySelectorAll('.tl-item').forEach(el=>{
       const th = parseFloat(el.dataset.t);
@@ -1473,14 +1718,19 @@ function startTracking(){
         el.classList.add('active');
       }
     });
-    if(frac>=0.1 && document.getElementById('t-ack').textContent==='—') document.getElementById('t-ack').textContent = fmt(elapsed);
     if(frac>=0.3 && document.getElementById('t-assigned').textContent==='—') document.getElementById('t-assigned').textContent = fmt(elapsed);
     if(frac>=0.55 && document.getElementById('t-enroute').textContent==='—') document.getElementById('t-enroute').textContent = fmt(elapsed);
     if(frac>=0.92 && document.getElementById('t-arriving').textContent==='—') document.getElementById('t-arriving').textContent = fmt(elapsed);
 
     if(frac>=1){
       clearInterval(trackInterval);
-      showToast('RESPONDER HAS ARRIVED');
+      document.getElementById('eta-value').textContent = 'ARRIVED';
+      document.getElementById('eta-unit').textContent = 'HELP HAS ARRIVED';
+      document.getElementById('dist-value').textContent = '0.0 km';
+      document.getElementById('progress-fill').style.width = '100%';
+      document.querySelectorAll('.tl-item').forEach(el=>{ el.classList.add('done'); el.classList.remove('active'); });
+      showToast('HELP HAS ARRIVED');
+      clearActiveAlert();
     }
   }, 1000);
 }
@@ -1489,35 +1739,71 @@ function startTracking(){
    REPORTS: MAP + LIST (citizen view)
 ================================================================= */
 const issues = [
-  {id:1, type:'Structure Fire', area:'Sector 4, Rajouri Rd', dist:0.8, ago:'2 min ago', priority:1, x:62, y:38},
-  {id:2, type:'Medical Emergency', area:'Sector 2, Park Lane', dist:1.4, ago:'6 min ago', priority:1, x:30, y:65},
-  {id:3, type:'Road Accident', area:'Ring Road Jn.', dist:2.1, ago:'11 min ago', priority:2, x:75, y:70},
-  {id:4, type:'Assault Reported', area:'Sector 9 Market', dist:2.6, ago:'14 min ago', priority:2, x:22, y:28},
-  {id:5, type:'Gas Leak', area:'Industrial Belt', dist:3.3, ago:'20 min ago', priority:2, x:85, y:20},
-  {id:6, type:'Flooding', area:'Nallah Underpass', dist:4.0, ago:'27 min ago', priority:3, x:45, y:82},
-  {id:7, type:'Theft in Progress', area:'Metro Station Gate 2', dist:4.6, ago:'33 min ago', priority:3, x:12, y:50},
+  {id:1, type:'Structure Fire', area:'Sector 4, Rajouri Rd', dist:0.8, ago:'2 min ago', priority:1, x:62, y:38, lat:28.6519, lng:77.1909},
+  {id:2, type:'Medical Emergency', area:'Sector 2, Park Lane', dist:1.4, ago:'6 min ago', priority:1, x:30, y:65, lat:28.6289, lng:77.2065},
+  {id:3, type:'Road Accident', area:'Ring Road Jn.', dist:2.1, ago:'11 min ago', priority:2, x:75, y:70, lat:28.6449, lng:77.2192},
+  {id:4, type:'Assault Reported', area:'Sector 9 Market', dist:2.6, ago:'14 min ago', priority:2, x:22, y:28, lat:28.6395, lng:77.1875},
+  {id:5, type:'Gas Leak', area:'Industrial Belt', dist:3.3, ago:'20 min ago', priority:2, x:85, y:20, lat:28.6712, lng:77.2312},
+  {id:6, type:'Flooding', area:'Nallah Underpass', dist:4.0, ago:'27 min ago', priority:3, x:45, y:82, lat:28.6103, lng:77.2385},
+  {id:7, type:'Theft in Progress', area:'Metro Station Gate 2', dist:4.6, ago:'33 min ago', priority:3, x:12, y:50, lat:28.6215, lng:77.1789},
 ];
 
 function priorityLabel(p){ return p===1?'P1':p===2?'P2':'P3'; }
 
+/* Real Leaflet map for the citizen "nearby reported issues" view */
+let reportsMapInstance = null;
+let reportsMarkers = {};
+let reportsUserMarker = null;
+
+function initReportsMap(){
+  if(reportsMapInstance) return;
+  const center = userLocation ? [userLocation.lat, userLocation.lng] : [28.6353, 77.2050];
+  reportsMapInstance = L.map('reports-map', { zoomControl:false }).setView(center, 13);
+  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+    maxZoom: 19,
+    attribution: '&copy; OpenStreetMap contributors'
+  }).addTo(reportsMapInstance);
+  L.control.zoom({ position:'bottomright' }).addTo(reportsMapInstance);
+}
+
+const priorityColor = { 1:'#d32f2f', 2:'#e08a1e', 3:'#6b6b6b' };
+
 function renderReports(){
   const sorted = [...issues].sort((a,b)=> a.priority - b.priority || a.dist - b.dist);
-  const map = document.getElementById('reports-map');
   const list = document.getElementById('reports-list');
 
-  map.querySelectorAll('.issue-pin').forEach(p=>p.remove());
-  list.innerHTML = '';
+  initReportsMap();
+
+  // clear old markers and redraw
+  Object.values(reportsMarkers).forEach(m=>reportsMapInstance.removeLayer(m));
+  reportsMarkers = {};
 
   issues.forEach(item=>{
-    const pin = document.createElement('div');
-    pin.className = `issue-pin p${item.priority}`;
-    pin.style.left = item.x+'%';
-    pin.style.top = item.y+'%';
-    pin.dataset.id = item.id;
-    pin.innerHTML = `<div class="core">${item.priority===1?'!':''}</div>`;
-    map.appendChild(pin);
+    const color = priorityColor[item.priority];
+    const size = item.priority===1 ? 22 : item.priority===2 ? 17 : 13;
+    const icon = L.divIcon({
+      className: 'issue-marker',
+      html: `<div class="issue-marker-core p${item.priority}" style="width:${size}px;height:${size}px;background:${item.priority===1?color:'#fff'};border-color:${color};">${item.priority===1?'!':''}</div>`,
+      iconSize: [size, size],
+      iconAnchor: [size/2, size/2]
+    });
+    const marker = L.marker([item.lat, item.lng], { icon }).addTo(reportsMapInstance);
+    marker.bindPopup(`<b>${item.type}</b><br>${item.area}<br>${item.dist.toFixed(1)} km away`);
+    marker.on('click', ()=>highlightIssue(item.id));
+    reportsMarkers[item.id] = marker;
   });
 
+  if(userLocation){
+    if(!reportsUserMarker){
+      reportsUserMarker = L.circleMarker([userLocation.lat, userLocation.lng], {
+        radius:7, color:'#111', weight:2, fillColor:'#111', fillOpacity:1
+      }).addTo(reportsMapInstance).bindPopup('You are here');
+    } else {
+      reportsUserMarker.setLatLng([userLocation.lat, userLocation.lng]);
+    }
+  }
+
+  list.innerHTML = '';
   sorted.forEach(item=>{
     const row = document.createElement('div');
     row.className = 'list-item';
@@ -1529,17 +1815,28 @@ function renderReports(){
         <div class="li-meta">${item.area} · ${item.ago}</div>
       </div>
       <div class="li-dist">${item.dist.toFixed(1)}<br>km</div>
+      <button class="li-nav-btn" data-nav-id="${item.id}" type="button" title="Get directions" aria-label="Get directions">
+        <svg viewBox="0 0 24 24" style="width:14px;height:14px;stroke:currentColor;fill:none;stroke-width:2;"><path d="M12 22s7-7.4 7-13a7 7 0 10-14 0c0 5.6 7 13 7 13z"/><circle cx="12" cy="9" r="2.4"/></svg>
+      </button>
     `;
     row.addEventListener('click', ()=>highlightIssue(item.id));
+    row.querySelector('.li-nav-btn').addEventListener('click', (e)=>{
+      e.stopPropagation();
+      openIssueMap(item.id);
+    });
     list.appendChild(row);
   });
 }
 
 function highlightIssue(id){
-  document.querySelectorAll('.issue-pin').forEach(p=>p.classList.toggle('highlight', p.dataset.id==id));
   document.querySelectorAll('.list-item').forEach(r=>r.classList.toggle('highlight', r.dataset.id==id));
-  const pin = document.querySelector(`.issue-pin[data-id="${id}"]`);
-  if(pin) pin.scrollIntoView({behavior:'smooth', block:'nearest'});
+  const row = document.querySelector(`.list-item[data-id="${id}"]`);
+  if(row) row.scrollIntoView({behavior:'smooth', block:'nearest'});
+  const marker = reportsMarkers[id];
+  if(marker && reportsMapInstance){
+    reportsMapInstance.panTo(marker.getLatLng());
+    marker.openPopup();
+  }
 }
 
 /* ================================================================
@@ -1600,17 +1897,27 @@ async function fetchStaffQueue(){
   }
 }
 
-async function advanceStatus(id){
+async function advanceStatus(id, etaMinutes){
   const item = staffQueueCache.find(i=>i.id === id);
   if(!item) return;
   const idx = STATUS_STEPS.indexOf(item.status);
   if(idx >= STATUS_STEPS.length - 1) return;
   const nextStatus = STATUS_STEPS[idx+1];
 
+  const body = { status: nextStatus };
+  if(nextStatus === 'ack'){
+    const eta = Number(etaMinutes);
+    if(!eta || eta <= 0){
+      showToast('Enter an ETA in minutes before acknowledging');
+      return;
+    }
+    body.etaMinutes = eta;
+  }
+
   try{
     const data = await apiFetch(`/alerts/${id}/status`, {
       method: 'PATCH',
-      body: JSON.stringify({ status: nextStatus })
+      body: JSON.stringify(body)
     });
     const i = staffQueueCache.findIndex(a=>a.id===id);
     if(i !== -1) staffQueueCache[i] = data.alert;
@@ -1645,7 +1952,9 @@ function renderStaffQueue(){
     const div = document.createElement('div');
     div.className = `staff-item ${item.status==='resolved' ? 'resolved' : ''}`;
     const idx = STATUS_STEPS.indexOf(item.status);
-    const nextLabel = idx < STATUS_STEPS.length - 1 ? STATUS_LABELS[STATUS_STEPS[idx+1]] : null;
+    const nextStatus = idx < STATUS_STEPS.length - 1 ? STATUS_STEPS[idx+1] : null;
+    const nextLabel = nextStatus ? STATUS_LABELS[nextStatus] : null;
+    const needsEta = nextStatus === 'ack';
     const reporterName = item.reporter && item.reporter.name;
     const reporterPhone = item.reporter && item.reporter.phone;
     const metaParts = [reporterName, formatAlertLocation(item.location), item.peopleAffected ? item.peopleAffected+' affected' : null].filter(Boolean).join(' · ');
@@ -1660,17 +1969,94 @@ function renderStaffQueue(){
         ${item.description ? `<div class="li-meta" style="margin-top:4px;">${item.description}</div>` : ''}
       </div>
       <div class="staff-actions">
+        ${item.location && item.location.lat != null ? `<button class="staff-btn" data-map-id="${item.id}" type="button"><svg viewBox="0 0 24 24" style="width:12px;height:12px;stroke:currentColor;fill:none;stroke-width:2;"><path d="M12 22s7-7.4 7-13a7 7 0 10-14 0c0 5.6 7 13 7 13z"/><circle cx="12" cy="9" r="2.4"/></svg> MAP</button>` : ''}
         ${reporterPhone ? `<a class="staff-btn call" href="tel:${reporterPhone.replace(/\s+/g,'')}"><svg viewBox="0 0 24 24"><path d="M6.6 10.8c1.4 2.8 3.8 5.2 6.6 6.6l2.2-2.2c.3-.3.7-.4 1.1-.3 1.2.4 2.5.6 3.8.6.6 0 1 .4 1 1V20c0 .6-.4 1-1 1C10.6 21 3 13.4 3 4c0-.6.4-1 1-1h3.5c.6 0 1 .4 1 1 0 1.3.2 2.6.6 3.8.1.4 0 .8-.3 1.1L6.6 10.8z"/></svg> CALL</a>` : ''}
-        ${nextLabel ? `<button class="staff-btn primary" data-id="${item.id}">MARK ${nextLabel}</button>` : ''}
+        ${needsEta ? `<input type="number" min="1" step="1" class="staff-eta-input" id="eta-input-${item.id}" placeholder="ETA min">` : ''}
+        ${nextLabel ? `<button class="staff-btn primary" data-id="${item.id}" ${needsEta ? 'data-needs-eta="1"' : ''}>${needsEta ? 'ACKNOWLEDGE' : 'MARK ' + nextLabel}</button>` : ''}
       </div>
     `;
     el.appendChild(div);
   });
   el.querySelectorAll('.staff-btn.primary').forEach(btn=>{
-    btn.addEventListener('click', ()=>advanceStatus(btn.dataset.id));
+    btn.addEventListener('click', ()=>{
+      let etaMinutes;
+      if(btn.dataset.needsEta){
+        const input = document.getElementById(`eta-input-${btn.dataset.id}`);
+        etaMinutes = input ? input.value : null;
+      }
+      advanceStatus(btn.dataset.id, etaMinutes);
+    });
+  });
+  el.querySelectorAll('.staff-btn[data-map-id]').forEach(btn=>{
+    btn.addEventListener('click', ()=>openLocationMap(btn.dataset.mapId));
   });
   updateStaffStats();
 }
+
+/* ---------------- VICTIM LOCATION MAP ---------------- */
+let staffMapInstance = null;
+let staffMapMarker = null;
+const modalMap = document.getElementById('modal-map');
+
+// Shared by staff (victim location) and citizen (nearby issue) views —
+// opens the map modal with a Leaflet preview + a "GET DIRECTIONS" link
+// that hands off to Google Maps navigation.
+function showLocationOnMap({lat, lng, title, subLabel}){
+  document.getElementById('map-modal-title').textContent = title;
+  document.getElementById('map-modal-sub').textContent = subLabel
+    ? `${subLabel} · ${lat.toFixed(5)}, ${lng.toFixed(5)}`
+    : `${lat.toFixed(5)}, ${lng.toFixed(5)}`;
+  document.getElementById('map-directions-link').href =
+    `https://www.google.com/maps/dir/?api=1&destination=${lat},${lng}`;
+
+  openModal(modalMap);
+
+  // Leaflet needs the container visible + sized before it can init/measure.
+  setTimeout(()=>{
+    if(!staffMapInstance){
+      staffMapInstance = L.map('staff-map').setView([lat, lng], 15);
+      L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        maxZoom: 19,
+        attribution: '&copy; OpenStreetMap contributors'
+      }).addTo(staffMapInstance);
+      staffMapMarker = L.marker([lat, lng]).addTo(staffMapInstance);
+    } else {
+      staffMapInstance.setView([lat, lng], 15);
+      staffMapMarker.setLatLng([lat, lng]);
+    }
+    staffMapInstance.invalidateSize();
+  }, 60);
+}
+
+function openLocationMap(id){
+  const item = staffQueueCache.find(i=>i.id === id);
+  if(!item || !item.location || item.location.lat == null){
+    showToast("No location data for this alert");
+    return;
+  }
+  const { lat, lng } = item.location;
+  showLocationOnMap({
+    lat, lng,
+    title: `${item.type} — victim location`,
+    subLabel: formatAlertLocation(item.location)
+  });
+}
+
+// Citizen view: get directions to a nearby reported issue.
+function openIssueMap(id){
+  const item = issues.find(i=>i.id === id);
+  if(!item || item.lat == null){
+    showToast("No location data for this report");
+    return;
+  }
+  showLocationOnMap({
+    lat: item.lat, lng: item.lng,
+    title: `${item.type} — reported location`,
+    subLabel: `${item.area} · ${item.dist.toFixed(1)} km away`
+  });
+}
+
+document.getElementById('map-close').addEventListener('click', ()=>closeModal(modalMap));
 
 function updateStaffStats(){
   const active = staffQueueCache.filter(i=>i.status!=='resolved').length;
@@ -1685,6 +2071,7 @@ function updateStaffStats(){
 renderReports();
 renderContacts();
 renderQuickCall();
+resumeActiveAlertIfAny();
 </script>
 </body>
 </html>
