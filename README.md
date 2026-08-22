@@ -4,7 +4,7 @@
 
 SIGNAL is a two-sided emergency response platform: a zero-friction SOS app for citizens in danger, and a real-time triage-and-navigation dashboard for dispatch staff to act on it — **no app download, no login wall between a person and help.**
 
-🔗 **Live app:** [disaster-response-platform.netlify.app](https://disaster-response-platform.netlify.app)
+🔗 **Live app:** https://signal-emergency-dispatch.netlify.app/
 🔗 **Live API:** [signal-backend-production-3aea.up.railway.app/api/health](https://signal-backend-production-3aea.up.railway.app/api/health)
 
 ---
